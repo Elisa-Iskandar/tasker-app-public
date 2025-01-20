@@ -1,0 +1,77 @@
+// Database Schema for MongoDB using Prisma
+// Prisma is a ORM (Object Relational Mapping) tool that allows you to interact with databases using a type-safe API
+// Prisma generates a client that can be used to interact with the database
+// More info: https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/mongodb-typescript-mongodb
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum ROLE {
+  LEADER
+  MEMBER
+}
+
+enum TASK_STATUS {
+  TO_DO
+  DELETED
+  COMPLETED
+  IN_PROGRESS
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  name         String?
+  password     String
+  role         ROLE     @default(MEMBER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  Team         Team?    @relation(fields: [teamId], references: [id])
+  teamId       String?  @db.ObjectId
+  File         File[]
+  Task         Task[]   @relation("assigned")
+  createdTasks Task[]   @relation("created")
+  updatedTask  Task[]   @relation("updated")
+}
+
+model File {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  fileName   String
+  filePath   String   @unique
+  fileType   String
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  User     @relation(fields: [creatorId], references: [id])
+  creatorId  String   @db.ObjectId
+}
+
+model Team {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  teamName    String
+  teamMembers User[]
+  createdAt   DateTime @default(now())
+  Task        Task[]
+}
+
+model Task {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  taskName    String
+  description String?
+  taskStatus  TASK_STATUS @default(TO_DO)
+  team        Team        @relation(fields: [teamId], references: [id])
+  teamId      String      @db.ObjectId
+  assignee    User?       @relation("assigned", fields: [assigneeId], references: [id])
+  assigneeId  String?     @db.ObjectId
+  createdAt   DateTime    @default(now())
+  createdBy   User        @relation("created", fields: [creatorId], references: [id])
+  creatorId   String      @db.ObjectId
+  updatedAt   DateTime    @updatedAt
+  updatedBy   User?       @relation("updated", fields: [updaterId], references: [id])
+  updaterId   String?     @db.ObjectId
+}
